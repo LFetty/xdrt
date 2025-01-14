@@ -31,6 +31,7 @@ def main():
         cast=args.cast,
         no_header=args.no_header,
         original_orientation=args.original_orientation,
+        clip=args.clip
     )
 
     if args.no_origin:

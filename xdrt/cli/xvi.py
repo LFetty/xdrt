@@ -79,6 +79,7 @@ def write_to_dicom():
         cast="uint16",
         no_header=args.no_header,
         original_orientation=args.original_orientation,
+        clip=args.clip
     )
     output_folder = args.OUTPUT_DIRECTORY / xvi_reconstruction.scan.scan_uid
     output_folder.mkdir(exist_ok=True)
@@ -115,6 +116,7 @@ def write_to_image():
         cast=args.cast,
         no_header=args.no_header,
         original_orientation=args.original_orientation,
+        clip=args.clip
     )
 
     if not args.no_header:

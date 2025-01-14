@@ -21,12 +21,14 @@ class _Reference(NamedTuple):
 
 
 class Scan(NamedTuple):
+    treatment_uid: str
     scan_uid: str
     date_time: datetime
     version: str
     level: float
     window: float
     filename: pathlib.Path
+    transform: tuple
 
 
 class XVIReconstruction:
@@ -55,13 +57,13 @@ class XVIReconstruction:
         self._data_dict = config._sections  # type: ignore
         self.__parse_config()
 
-        for file in ini_files:
+        for file in sorted(ini_files, reverse=True):
             config.read(file)
 
         self.__parse_identification()
 
     def __parse_config(self):
-        headers = ["RECONSTRUCTION", "REFERENCE"]
+        headers = ["RECONSTRUCTION"]
         if any(_ not in self._data_dict for _ in headers):
             raise RuntimeError(f"At least one XVI file in {self.path} should have a header in {headers}.")
 
@@ -69,15 +71,15 @@ class XVIReconstruction:
         datetime_str = reconstruction["reconstructiondate"] + " " + reconstruction["reconstructiontime"]
         date_time = datetime.strptime(datetime_str, "%Y%m%d %H:%M:%S")
 
-        reference = self._data_dict["REFERENCE"]
-        version = reference["avlversion"]
-        level = int(reference["reference1.level"])
-        window = int(reference["reference1.window"])
+        reference = self._data_dict.get("REFERENCE", {})
+        version = reference.get("avlversion", 'NKI-XVI')
+        level = int(reference.get("reference1.level", 1000))
+        window = int(reference.get("reference1.window", 500))
 
         self._reference = _Reference(date_time=date_time, version=version, level=level, window=window)
 
     def __parse_identification(self):
-        if "IDENTIFICATION" not in self._data_dict:
+        if "IDENTIFICATION" not in self._data_dict or self._data_dict["ALIGNMENT"].get("onlinetoreftransformcorrection",None) is None:
             raise RuntimeError(f"At least one INI file in {self.path} should have an IDENTIFICATION header.")
 
         identification = self._data_dict["IDENTIFICATION"]
@@ -85,11 +87,14 @@ class XVIReconstruction:
         patient_id = identification["patientid"]
         first_name = identification["firstname"]
         last_name = identification["lastname"]
+        treatment_uid = identification["treatmentuid"]
         date_of_birth = datetime.strptime(identification["dob"], "%d.%m.%Y")
         self.patient = Patient(
             patient_id=patient_id, first_name=first_name, last_name=last_name, date_of_birth=date_of_birth
         )
         scan_uid = identification["scanuid"]
+        alignment = self._data_dict["ALIGNMENT"]
+        transform = tuple(float(value) for value in alignment["onlinetoreftransformcorrection"].split())
         scan_header = scan_uid + ".ALIGN"
         if scan_header not in self._data_dict:
             raise RuntimeError(f"Expected to find header {scan_header} in one of the configuration files.")
@@ -99,12 +104,14 @@ class XVIReconstruction:
             raise RuntimeError(f"Expected reconstruction filename {reconstruction_filename} to exist.")
 
         self.scan = Scan(
+            treatment_uid=treatment_uid,
             scan_uid=scan_uid,
             date_time=self._reference.date_time,
             version=self._reference.version,
             level=self._reference.level,
             window=self._reference.window,
             filename=reconstruction_filename,
+            transform=transform
         )
 
     def __repr__(self):

@@ -72,6 +72,12 @@ class BaseArgs(argparse.ArgumentParser):
             action="store_true",
             help="Do not write XDR header to output file.",
         )
+        
+        self.add_argument(
+            "--clip",
+            action="store_true",
+            help="Trunacte values below zero."
+        )
         self.add_argument(
             "--temporal-average",
             type=str,
@@ -90,7 +96,7 @@ class BaseArgs(argparse.ArgumentParser):
         self.set_defaults(**overrides)
 
 
-def read_xdr_as_simpleitk(input_xdr, temporal_average, slope, intercept, cast, no_header, original_orientation):
+def read_xdr_as_simpleitk(input_xdr, temporal_average, slope, intercept, cast, no_header, original_orientation, clip):
     try:
         xdr_image = xdr_reader.read(input_xdr, stop_before_data=False)
     except RuntimeError as e:
@@ -106,6 +112,7 @@ def read_xdr_as_simpleitk(input_xdr, temporal_average, slope, intercept, cast, n
         slope=slope,
         intercept=intercept,
         cast=cast,
+        clip=clip
     )
 
     sitk_image = xdrt.read_as_simpleitk(

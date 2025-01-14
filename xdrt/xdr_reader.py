@@ -408,6 +408,7 @@ def postprocess_xdr_image(
     slope: float,
     intercept: float,
     cast: str,
+    clip: bool
 ) -> XDRImage:
     if temporal_average:
         logging.info(f"Computing temporal average: {temporal_average}.")
@@ -427,6 +428,9 @@ def postprocess_xdr_image(
 
         xdr_image.data = (weights * xdr_image.data.T).T.sum(axis=0)
         xdr_image.header.ndim = 3  # Data is now 3D
+
+    if clip:
+        xdr_image.data = np.clip(xdr_image.data, 0, np.inf)
 
     if slope:
         logging.info(f"Slope set: {slope}.")
