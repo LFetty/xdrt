@@ -88,7 +88,10 @@ class XVIReconstruction:
         first_name = identification["firstname"]
         last_name = identification["lastname"]
         treatment_uid = identification["treatmentuid"]
-        date_of_birth = datetime.strptime(identification["dob"], "%d.%m.%Y")
+        try:
+            date_of_birth = datetime.strptime(identification["dob"], "%d.%m.%Y")
+        except ValueError:
+            date_of_birth = datetime.strptime(identification["dob"], "%m/%d/%Y")
         self.patient = Patient(
             patient_id=patient_id, first_name=first_name, last_name=last_name, date_of_birth=date_of_birth
         )

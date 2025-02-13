@@ -21,7 +21,7 @@ try:
         nki_decompress_lib = Path(path.dirname(path.abspath(__file__))) / "lib" / "nkidecompress.dll"
     elif sys.platform in EXT:
         nki_decompress_lib = (
-            Path(path.dirname(path.abspath(__file__))) / "lib" / f"libnkidecompress.{EXT[sys.platform]}"
+            Path(path.dirname(path.abspath(__file__))) / "lib" / f"nkidecompress.{EXT[sys.platform]}"
         )
     else:
         raise RuntimeError(f"Platform {sys.platform} not supported.")
