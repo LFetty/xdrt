@@ -91,7 +91,7 @@ class XVIReconstruction:
         try:
             date_of_birth = datetime.strptime(identification["dob"], "%d.%m.%Y")
         except ValueError:
-            date_of_birth = datetime.strptime(identification["dob"], "%m/%d/%Y")
+            date_of_birth = datetime.strptime(identification["dob"], "%d/%m/%Y")
         self.patient = Patient(
             patient_id=patient_id, first_name=first_name, last_name=last_name, date_of_birth=date_of_birth
         )
