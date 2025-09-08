@@ -2,6 +2,7 @@
 # Copyright (c) Jonas Teuwen
 import ctypes
 import logging
+import subprocess
 import string
 import sys
 import warnings
@@ -12,6 +13,34 @@ import numpy as np
 import SimpleITK as sitk
 
 from xdrt.utils import DATATYPES, camel_to_snake, make_integer
+
+
+def compile_nki_decompression_lib(source_file, output_file):
+    """Compile the NKI decompression C++ source file."""
+    try:
+        if sys.platform == "win32":
+            # Windows compilation with MSVC or MinGW
+            cmd = [
+                "g++", "-shared", "-fPIC", "-O3",
+                str(source_file), "-o", str(output_file)
+            ]
+        else:
+            # Unix-like systems (Linux, macOS)
+            cmd = [
+                "g++", "-shared", "-fPIC", "-O3",
+                str(source_file), "-o", str(output_file)
+            ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode == 0:
+            return True
+        else:
+            warnings.warn(f"Compilation failed: {result.stderr}")
+            return False
+    except Exception as e:
+        warnings.warn(f"Compilation error: {e}")
+        return False
+
 
 nki_decompression_available = False
 try:
@@ -25,8 +54,32 @@ try:
         )
     else:
         raise RuntimeError(f"Platform {sys.platform} not supported.")
-    nki_compression = ctypes.cdll.LoadLibrary(str(nki_decompress_lib))
-    nki_decompression_available = True
+    
+    # Try to load the library, compile if it doesn't exist
+    try:
+        nki_compression = ctypes.cdll.LoadLibrary(str(nki_decompress_lib))
+        nki_decompression_available = True
+    except (ImportError, OSError):
+        # Library doesn't exist, try to compile it
+        source_file = Path(path.dirname(path.abspath(__file__))) / "lib" / "nki_decompression" / "nkidecompress.cxx"
+        
+        if source_file.exists():
+            # Ensure lib directory exists
+            nki_decompress_lib.parent.mkdir(parents=True, exist_ok=True)
+            
+            logging.info(f"NKI decompression library not found. Attempting to compile from {source_file}")
+            if compile_nki_decompression_lib(source_file, nki_decompress_lib):
+                try:
+                    nki_compression = ctypes.cdll.LoadLibrary(str(nki_decompress_lib))
+                    nki_decompression_available = True
+                    logging.info("Successfully compiled and loaded NKI decompression library")
+                except (ImportError, OSError) as load_error:
+                    warnings.warn(f"Compiled library but failed to load: {load_error}")
+            else:
+                warnings.warn("Failed to compile NKI decompression library")
+        else:
+            warnings.warn(f"Source file not found: {source_file}")
+
 except (ImportError, OSError) as e:
     warnings.warn(f"Decompression library not available. Will not be able to read compressed XDR: {e}.")
 
