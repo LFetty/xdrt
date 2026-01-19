@@ -53,12 +53,12 @@ class XVIReconstruction:
         xvi_files = self.path.glob("*.XVI")
         config = configparser.ConfigParser()
         for file in xvi_files:
-            config.read(file)
+            config.read(file, encoding='latin-1')
         self._data_dict = config._sections  # type: ignore
         self.__parse_config()
 
         for file in sorted(ini_files, reverse=True):
-            config.read(file)
+            config.read(file, encoding='latin-1')
 
         self.__parse_identification()
 
@@ -79,8 +79,11 @@ class XVIReconstruction:
         self._reference = _Reference(date_time=date_time, version=version, level=level, window=window)
 
     def __parse_identification(self):
-        if "IDENTIFICATION" not in self._data_dict or self._data_dict["ALIGNMENT"].get("onlinetoreftransformcorrection",None) is None:
+        if "IDENTIFICATION" not in self._data_dict:
             raise RuntimeError(f"At least one INI file in {self.path} should have an IDENTIFICATION header.")
+        if self._data_dict["ALIGNMENT"].get("onlinetoreftransformcorrection",None) is None:
+            raise RuntimeError(f"At least one INI file in {self.path} should have an ALIGNMENT header with "
+                               f"onlinetoreftransformcorrection entry.")
 
         identification = self._data_dict["IDENTIFICATION"]
 
